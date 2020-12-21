@@ -79,11 +79,9 @@ jobs:
       - uses: actions/setup-python@v2
         name: Install Python
 
-      - name: Install cibuildwheel
-        run: python -m pip install cibuildwheel==1.7.2
-
-      - name: Build wheels
-        run: python -m cibuildwheel --output-dir wheelhouse
+      # Or use: pip install cibuildwheel==1.7.2 && python -m cibuildwheel
+      # But this can be updated by dependabot if you want
+      - uses: joerick/cibuildwheel@v1.7.2
         env:
           CIBW_SKIP: "cp27-* pp27-*"  # skip Python 2.7 wheels
 

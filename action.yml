@@ -1,0 +1,19 @@
+name: 'cibuildwheel'
+description: 'Installs and runs cibuildwheel on the current runner'
+inputs:
+  package-dir:
+    description: 'Input directory, defaults to "."'
+    required: false
+    default: '.'
+  output-dir:
+    description: 'Folder to place the outputs in, defaults to "wheelhouse"'
+    required: false
+    default: 'wheelhouse'
+
+runs:
+  using: "composite"
+  steps:
+    - run: python -m pip install ${{ github.action_path }}
+      shell: bash
+    - run: python -m cibuildwheel ${{ inputs.package-dir }} --output-dir ${{ inputs.output-dir }}
+      shell: bash
