@@ -145,12 +145,6 @@ def expected_wheels(package_name, package_version, manylinux_versions=None,
                 for manylinux_version in manylinux_versions
             ]
 
-        elif platform == 'windows':
-            if python_abi_tag.startswith('cp'):
-                platform_tags = ['win32', 'win_amd64']
-            else:
-                platform_tags = ['win32']
-
         elif platform == 'macos':
             if python_abi_tag == 'cp39-cp39' and machine_arch == 'arm64':
                 arm64_macosx_deployment_target = _get_arm64_macosx_deployment_target(macosx_deployment_target)
@@ -162,6 +156,12 @@ def expected_wheels(package_name, package_version, manylinux_versions=None,
                 platform_tags = [
                     f'macosx_{macosx_deployment_target.replace(".", "_")}_x86_64',
                 ]
+
+        elif platform == 'windows':
+            if python_abi_tag.startswith('cp'):
+                platform_tags = ['win32', 'win_amd64']
+            else:
+                platform_tags = ['win32']
 
         else:
             raise Exception('unsupported platform')
