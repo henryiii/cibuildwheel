@@ -1,4 +1,5 @@
 import contextlib
+import dataclasses
 import fnmatch
 import itertools
 import os
@@ -12,7 +13,18 @@ import urllib.request
 from enum import Enum
 from pathlib import Path
 from time import sleep
-from typing import Dict, Iterator, List, NamedTuple, Optional, Set
+from typing import (
+    Counter,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    NamedTuple,
+    Optional,
+    Set,
+    Tuple,
+    TypeVar,
+)
 
 import bracex
 import certifi
@@ -22,7 +34,7 @@ from packaging.version import Version
 
 from .architecture import Architecture
 from .environment import ParsedEnvironment
-from .typing import Literal, PathOrStr, PlatformName
+from .typing import Literal, PathOrStr, PlatformName, Protocol
 
 resources_dir = Path(__file__).parent / "resources"
 
@@ -247,6 +259,113 @@ class BuildOptions(NamedTuple):
     def __str__(self) -> str:
         res = (f"{option}: {value!r}" for option, value in sorted(self._asdict().items()))
         return "\n".join(res)
+
+
+class SimpleConfig(Protocol):
+    @property
+    def identifier(self) -> str:
+        ...
+
+
+SC = TypeVar("SC", bound=SimpleConfig)
+
+
+@dataclasses.dataclass
+class BuildOptionsContainer:
+    general_build_options: BuildOptions
+    build_options_by_selector: Dict[str, BuildOptions]
+
+    def get(self, identifier: str) -> BuildOptions:
+        for sel in self.build_options_by_selector:
+            bs = BuildSelector(build_config=sel, skip_config="")
+            if bs(identifier):
+                return self.build_options_by_selector[sel]
+        return self.general_build_options
+
+    def values(self) -> Iterable[BuildOptions]:
+        return itertools.chain(
+            [self.general_build_options], self.build_options_by_selector.values()
+        )
+
+    @property
+    def package_dir(self) -> Path:
+        return self.general_build_options.package_dir
+
+    @property
+    def build_selector(self) -> BuildSelector:
+        return self.general_build_options.build_selector
+
+    @property
+    def architectures(self) -> Set[Architecture]:
+        return self.general_build_options.architectures
+
+    @property
+    def environment(self) -> ParsedEnvironment:
+        return self.general_build_options.environment
+
+    @property
+    def before_all(self) -> str:
+        return self.general_build_options.before_all
+
+    def produce_options_by_selector(
+        self, identifier_strs: List[SC]
+    ) -> Iterator[Tuple[List[SC], BuildOptions]]:
+        original_selectors = {s.identifier for s in identifier_strs}
+        assert len(original_selectors) == len(identifier_strs), "Identifier strings must be unique!"
+
+        for selector, options in self.build_options_by_selector.items():
+            current_selector = BuildSelector(build_config=selector, skip_config="")
+            current_identifiers = [s for s in identifier_strs if current_selector(s.identifier)]
+            original_selectors -= {s.identifier for s in current_identifiers}
+            yield current_identifiers, options
+
+        left_over_identifier_strs = [
+            s for s in identifier_strs if s.identifier in original_selectors
+        ]
+        yield left_over_identifier_strs, self.general_build_options
+
+    def check_build_selectors(self, identifier_strs: List[str]) -> None:
+        hits = Counter[str]()
+        for sel in self.build_options_by_selector:
+            bs = BuildSelector(build_config=sel, skip_config="")
+            hits += Counter(i for i in identifier_strs if bs(i))
+
+        non_unique_identifers = {idnt for idnt, count in hits.items() if count > 1}
+        if non_unique_identifers:
+            print(
+                "cibuildwheel: error, the windows/macOS selectors must match uniquely",
+                file=sys.stderr,
+            )
+            for sel in self.build_options_by_selector:
+                bs = BuildSelector(build_config=sel, skip_config="")
+                for i in non_unique_identifers:
+                    if bs(i):
+                        print(f"  {sel}: {i} (nonunique match)")
+            sys.exit(1)
+
+    def get_build_options(self, identfier: str) -> BuildOptions:
+        for build_str in self.build_options_by_selector:
+            build_sel = BuildSelector(build_config=build_str, skip_config="")
+            if build_sel(identfier):
+                return self.build_options_by_selector[build_str]
+        return self.general_build_options
+
+    def __str__(self) -> str:
+        results = []
+        for option in sorted(self.general_build_options._asdict().keys()):
+            variations = {
+                key: value._asdict()[option]
+                for key, value in self.build_options_by_selector.items()
+            }
+            variations["*"] = self.general_build_options._asdict()[option]
+            if len({repr(v) for v in variations.values()}) == 1:
+                results.append(f"{option}: {variations['*']!r}")
+            else:
+                results.append(f"{option}:")
+                for key, value in sorted(variations.items()):
+                    results.append(f"  {key}: {value!r}")
+
+        return "\n".join(results)
 
 
 class NonPlatformWheelError(Exception):

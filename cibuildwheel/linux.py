@@ -10,6 +10,7 @@ from .logger import log
 from .typing import PathOrStr, assert_never
 from .util import (
     BuildOptions,
+    BuildOptionsContainer,
     BuildSelector,
     NonPlatformWheelError,
     get_build_verbosity_extra_flags,
@@ -32,6 +33,7 @@ class BuildStep(NamedTuple):
     platform_configs: List[PythonConfiguration]
     platform_tag: str
     docker_image: str
+    options: BuildOptions
 
 
 def get_python_configurations(
@@ -54,7 +56,7 @@ def get_python_configurations(
 
 
 def get_build_steps(
-    options: BuildOptions, python_configurations: List[PythonConfiguration]
+    all_options: BuildOptionsContainer, python_configurations: List[PythonConfiguration]
 ) -> Iterator[BuildStep]:
     platforms = [
         ("cp", "manylinux_x86_64", "x86_64"),
@@ -73,15 +75,6 @@ def get_build_steps(
     ]
 
     for implementation, platform_tag, platform_arch in platforms:
-        assert options.manylinux_images is not None
-        assert options.musllinux_images is not None
-
-        docker_image = (
-            options.manylinux_images[platform_arch]
-            if platform_tag.startswith("manylinux")
-            else options.musllinux_images[platform_arch]
-        )
-
         platform_configs = [
             c
             for c in python_configurations
@@ -90,7 +83,17 @@ def get_build_steps(
         if not platform_configs:
             continue
 
-        yield BuildStep(platform_configs, platform_tag, docker_image)
+        for local_configs, options in all_options.produce_options_by_selector(platform_configs):
+            assert options.manylinux_images is not None
+            assert options.musllinux_images is not None
+
+            docker_image = (
+                options.manylinux_images[platform_arch]
+                if platform_tag.startswith("manylinux")
+                else options.musllinux_images[platform_arch]
+            )
+
+            yield BuildStep(local_configs, platform_tag, docker_image, options)
 
 
 def build_on_docker(
@@ -288,7 +291,7 @@ def build_on_docker(
     log.step_end()
 
 
-def build(options: BuildOptions) -> None:
+def build(all_options: BuildOptionsContainer) -> None:
     try:
         # check docker is installed
         subprocess.run(["docker", "--version"], check=True, stdout=subprocess.DEVNULL)
@@ -301,19 +304,19 @@ def build(options: BuildOptions) -> None:
         )
         sys.exit(2)
 
-    assert options.manylinux_images is not None
-    assert options.musllinux_images is not None
-    python_configurations = get_python_configurations(options.build_selector, options.architectures)
+    python_configurations = get_python_configurations(
+        all_options.build_selector, all_options.architectures
+    )
 
     cwd = Path.cwd()
-    abs_package_dir = options.package_dir.resolve()
+    abs_package_dir = all_options.package_dir.resolve()
     if cwd != abs_package_dir and cwd not in abs_package_dir.parents:
         raise Exception("package_dir must be inside the working directory")
 
     container_project_path = PurePath("/project")
     container_package_dir = container_project_path / abs_package_dir.relative_to(cwd)
 
-    for build_step in get_build_steps(options, python_configurations):
+    for build_step in get_build_steps(all_options, python_configurations):
         try:
             log.step(f"Starting Docker image {build_step.docker_image}...")
 
@@ -324,7 +327,7 @@ def build(options: BuildOptions) -> None:
             ) as docker:
 
                 build_on_docker(
-                    options,
+                    build_step.options,
                     build_step.platform_configs,
                     docker,
                     container_project_path,
@@ -335,7 +338,7 @@ def build(options: BuildOptions) -> None:
             log.step_end_with_error(
                 f"Command {error.cmd} failed with code {error.returncode}. {error.stdout}"
             )
-            troubleshoot(options, error)
+            troubleshoot(build_step.options, error)
             sys.exit(1)
 
 

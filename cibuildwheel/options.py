@@ -1,9 +1,10 @@
+import copy
 import os
 import sys
 import traceback
 from configparser import ConfigParser
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Set, Tuple, TypeVar, Union
 
 import toml
 from packaging.specifiers import SpecifierSet
@@ -17,6 +18,7 @@ from .util import (
     MUSLLINUX_ARCHS,
     BuildFrontend,
     BuildOptions,
+    BuildOptionsContainer,
     BuildSelector,
     DependencyConstraints,
     TestSelector,
@@ -56,6 +58,9 @@ def _dig_first(*pairs: Tuple[Mapping[str, Setting], str], ignore_empty: bool = F
             return value
 
     raise KeyError(key)
+
+
+T = TypeVar("T", bound="ConfigOptions")
 
 
 class ConfigOptions:
@@ -117,12 +122,27 @@ class ConfigOptions:
         self.config_options = config_options
         self.config_platform_options = config_platform_options
 
+        self.overrides: Dict[str, Dict[str, Any]] = {}
+        self.current_override: str = "*"
+
+        overrides = self.config_options.get("overrides")
+        if overrides is not None:
+            if not isinstance(overrides, list):
+                raise ConfigOptionError('"tool.cibuildwheel.overrides" must be a list')
+            for override in overrides:
+                selector = override.pop("select")
+                if isinstance(selector, list):
+                    selector = " ".join(selector)
+                if selector in {"", "*"}:
+                    raise ConfigOptionError("select all must not be used in an override")
+                self.overrides[selector.strip()] = override
+
     def _is_valid_global_option(self, name: str) -> bool:
         """
         Returns True if an option with this name is allowed in the
         [tool.cibuildwheel] section of a config file.
         """
-        allowed_option_names = self.default_options.keys() | PLATFORMS
+        allowed_option_names = self.default_options.keys() | PLATFORMS | {"overrides"}
 
         return name in allowed_option_names
 
@@ -149,6 +169,14 @@ class ConfigOptions:
         platform_options = global_options.get(self.platform, {})
 
         return global_options, platform_options
+
+    def override(self: T, selector: str) -> T:
+        """
+        Start an override scope.
+        """
+        other = copy.copy(self)
+        other.current_override = selector
+        return other
 
     def __call__(
         self,
@@ -178,9 +206,11 @@ class ConfigOptions:
 
         # get the option from the environment, then the config file, then finally the default.
         # platform-specific options are preferred, if they're allowed.
+        empty: Dict[str, Any] = {}
         result = _dig_first(
             (os.environ if env_plat else {}, plat_envvar),  # type: ignore
             (os.environ, envvar),
+            (self.overrides.get(self.current_override, empty), name),
             (self.config_platform_options, name),
             (self.config_options, name),
             (self.default_platform_options, name),
@@ -209,7 +239,7 @@ def compute_options(
     config_file: Optional[str],
     args_archs: Optional[str],
     prerelease_pythons: bool,
-) -> BuildOptions:
+) -> BuildOptionsContainer:
     """
     Compute the options from the environment and configuration file.
     """
@@ -262,7 +292,7 @@ def compute_options(
     )
     test_selector = TestSelector(skip_config=test_skip)
 
-    return _compute_single_options(
+    return _compute_all_options(
         options, args_archs, build_selector, test_selector, platform, package_dir, output_dir
     )
 
@@ -394,6 +424,29 @@ def _compute_single_options(
         musllinux_images=musllinux_images or None,
         build_frontend=build_frontend,
     )
+
+
+def _compute_all_options(
+    options: ConfigOptions,
+    args_archs: Optional[str],
+    build_selector: BuildSelector,
+    test_selector: TestSelector,
+    platform: PlatformName,
+    package_dir: Path,
+    output_dir: Path,
+) -> BuildOptionsContainer:
+    args = (args_archs, build_selector, test_selector, platform, package_dir, output_dir)
+
+    general_build_options = _compute_single_options(options, *args)
+
+    selectors = options.overrides.keys()
+    build_options_by_selector = {
+        s: _compute_single_options(options.override(s), *args) for s in selectors
+    }
+
+    build_options = BuildOptionsContainer(general_build_options, build_options_by_selector)
+
+    return build_options
 
 
 def deprecated_selectors(name: str, selector: str, *, error: bool = False) -> None:

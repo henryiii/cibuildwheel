@@ -14,7 +14,7 @@ from cibuildwheel.architecture import Architecture, allowed_architectures_check
 from cibuildwheel.options import compute_options
 from cibuildwheel.typing import PLATFORMS, PlatformName, assert_never
 from cibuildwheel.util import (
-    BuildOptions,
+    BuildOptionsContainer,
     BuildSelector,
     Unbuffered,
     detect_ci_provider,
@@ -200,7 +200,7 @@ def main() -> None:
             assert_never(platform)
 
 
-def print_preamble(platform: str, build_options: BuildOptions) -> None:
+def print_preamble(platform: str, build_options: BuildOptionsContainer) -> None:
     print(
         textwrap.dedent(
             """
@@ -254,20 +254,21 @@ def get_build_identifiers(
     return [config.identifier for config in python_configurations]
 
 
-def detect_warnings(platform: str, build_options: BuildOptions) -> List[str]:
+def detect_warnings(platform: str, all_options: BuildOptionsContainer) -> List[str]:
     warnings = []
 
     # warn about deprecated {python} and {pip}
-    for option_name in ["test_command", "before_build"]:
-        option_value = getattr(build_options, option_name)
+    for build_options in all_options.values():
+        for option_name in ["test_command", "before_build"]:
+            option_value = getattr(build_options, option_name)
 
-        if option_value and ("{python}" in option_value or "{pip}" in option_value):
-            # Reminder: in an f-string, double braces means literal single brace
-            msg = (
-                f"{option_name}: '{{python}}' and '{{pip}}' are no longer needed, "
-                "and will be removed in a future release. Simply use 'python' or 'pip' instead."
-            )
-            warnings.append(msg)
+            if option_value and ("{python}" in option_value or "{pip}" in option_value):
+                # Reminder: in an f-string, double braces means literal single brace
+                msg = (
+                    f"{option_name}: '{{python}}' and '{{pip}}' are no longer needed, "
+                    "and will be removed in a future release. Simply use 'python' or 'pip' instead."
+                )
+                warnings.append(msg)
 
     return warnings
 

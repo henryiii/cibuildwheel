@@ -13,7 +13,7 @@ from .logger import log
 from .typing import PathOrStr, assert_never
 from .util import (
     BuildFrontend,
-    BuildOptions,
+    BuildOptionsContainer,
     BuildSelector,
     NonPlatformWheelError,
     download,
@@ -246,25 +246,26 @@ def setup_python(
     return env
 
 
-def build(options: BuildOptions) -> None:
+def build(all_options: BuildOptionsContainer) -> None:
     temp_dir = Path(tempfile.mkdtemp(prefix="cibuildwheel"))
     built_wheel_dir = temp_dir / "built_wheel"
     repaired_wheel_dir = temp_dir / "repaired_wheel"
 
     try:
-        if options.before_all:
+        if all_options.before_all:
             log.step("Running before_all...")
-            env = options.environment.as_dictionary(prev_environment=os.environ)
+            env = all_options.environment.as_dictionary(prev_environment=os.environ)
             before_all_prepared = prepare_command(
-                options.before_all, project=".", package=options.package_dir
+                all_options.before_all, project=".", package=all_options.package_dir
             )
             shell(before_all_prepared, env=env)
 
         python_configurations = get_python_configurations(
-            options.build_selector, options.architectures
+            all_options.build_selector, all_options.architectures
         )
 
         for config in python_configurations:
+            options = all_options.get(config.identifier)
             log.build_start(config.identifier)
 
             dependency_constraint_flags: Sequence[PathOrStr] = []

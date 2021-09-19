@@ -59,6 +59,7 @@ repos:
       - types-jinja2
       - types-certifi
       - types-toml
+      - types-dataclasses
   - id: mypy
     name: mypy 3.7+ on bin/
     files: ^((bin|docs)/.*py|noxfile.py)$
