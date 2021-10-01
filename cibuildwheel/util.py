@@ -10,6 +10,7 @@ import sys
 import textwrap
 import time
 import urllib.request
+from collections import defaultdict
 from enum import Enum
 from pathlib import Path
 from time import sleep
@@ -19,6 +20,7 @@ from typing import (
     Iterable,
     Iterator,
     List,
+    Mapping,
     NamedTuple,
     Optional,
     Set,
@@ -287,6 +289,7 @@ class BuildOptionsContainer:
             [self.general_build_options], self.build_options_by_selector.values()
         )
 
+    # These values are not overridable in some cases
     @property
     def package_dir(self) -> Path:
         return self.general_build_options.package_dir
@@ -294,6 +297,10 @@ class BuildOptionsContainer:
     @property
     def build_selector(self) -> BuildSelector:
         return self.general_build_options.build_selector
+
+    @property
+    def output_dir(self) -> Path:
+        return self.general_build_options.output_dir
 
     @property
     def architectures(self) -> Set[Architecture]:
@@ -307,22 +314,26 @@ class BuildOptionsContainer:
     def before_all(self) -> str:
         return self.general_build_options.before_all
 
-    def produce_options_by_selector(
-        self, identifier_strs: List[SC]
-    ) -> Iterator[Tuple[List[SC], BuildOptions]]:
-        original_selectors = {s.identifier for s in identifier_strs}
-        assert len(original_selectors) == len(identifier_strs), "Identifier strings must be unique!"
+    def produce_image_batches(
+        self,
+        identifier_strs: List[SC],
+        platform_tag: str,
+        platform_arch: str,
+    ) -> Iterator[Tuple[List[SC], str]]:
 
-        for selector, options in self.build_options_by_selector.items():
-            current_selector = BuildSelector(build_config=selector, skip_config="")
-            current_identifiers = [s for s in identifier_strs if current_selector(s.identifier)]
-            original_selectors -= {s.identifier for s in current_identifiers}
-            yield current_identifiers, options
+        docker_images: Mapping[str, List[SC]] = defaultdict(list)
 
-        left_over_identifier_strs = [
-            s for s in identifier_strs if s.identifier in original_selectors
-        ]
-        yield left_over_identifier_strs, self.general_build_options
+        for config in identifier_strs:
+            images = (
+                self.get(config.identifier).manylinux_images
+                if platform_tag.startswith("manylinux")
+                else self.get(config.identifier).musllinux_images
+            )
+            assert images is not None
+            docker_images[images[platform_arch]].append(config)
+
+        for image, configs in docker_images.items():
+            yield configs, image
 
     def check_build_selectors(self, identifier_strs: List[str]) -> None:
         hits = Counter[str]()

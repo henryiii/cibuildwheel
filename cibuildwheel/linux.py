@@ -9,7 +9,6 @@ from .docker_container import DockerContainer
 from .logger import log
 from .typing import PathOrStr, assert_never
 from .util import (
-    BuildOptions,
     BuildOptionsContainer,
     BuildSelector,
     NonPlatformWheelError,
@@ -33,7 +32,6 @@ class BuildStep(NamedTuple):
     platform_configs: List[PythonConfiguration]
     platform_tag: str
     docker_image: str
-    options: BuildOptions
 
 
 def get_python_configurations(
@@ -83,21 +81,15 @@ def get_build_steps(
         if not platform_configs:
             continue
 
-        for local_configs, options in all_options.produce_options_by_selector(platform_configs):
-            assert options.manylinux_images is not None
-            assert options.musllinux_images is not None
-
-            docker_image = (
-                options.manylinux_images[platform_arch]
-                if platform_tag.startswith("manylinux")
-                else options.musllinux_images[platform_arch]
-            )
-
-            yield BuildStep(local_configs, platform_tag, docker_image, options)
+        for local_configs, docker_image in all_options.produce_image_batches(
+            platform_configs, platform_tag, platform_arch
+        ):
+            # TODO: Validate that the options are not invalid for these selectors
+            yield BuildStep(local_configs, platform_tag, docker_image)
 
 
 def build_on_docker(
-    options: BuildOptions,
+    all_options: BuildOptionsContainer,
     platform_configs: List[PythonConfiguration],
     docker: DockerContainer,
     container_project_path: PurePath,
@@ -108,16 +100,16 @@ def build_on_docker(
     log.step("Copying project into Docker...")
     docker.copy_into(Path.cwd(), container_project_path)
 
-    if options.before_all:
+    if all_options.before_all:
         log.step("Running before_all...")
 
         env = docker.get_environment()
         env["PATH"] = f'/opt/python/cp38-cp38/bin:{env["PATH"]}'
         env["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
-        env = options.environment.as_dictionary(env, executor=docker.environment_executor)
+        env = all_options.environment.as_dictionary(env, executor=docker.environment_executor)
 
         before_all_prepared = prepare_command(
-            options.before_all,
+            all_options.before_all,
             project=container_project_path,
             package=container_package_dir,
         )
@@ -125,6 +117,7 @@ def build_on_docker(
 
     for config in platform_configs:
         log.build_start(config.identifier)
+        options = all_options.get(config.identifier)
 
         dependency_constraint_flags: List[PathOrStr] = []
 
@@ -287,7 +280,7 @@ def build_on_docker(
 
     log.step("Copying wheels back to host...")
     # copy the output back into the host
-    docker.copy_out(container_output_dir, options.output_dir)
+    docker.copy_out(container_output_dir, all_options.output_dir)
     log.step_end()
 
 
@@ -327,7 +320,7 @@ def build(all_options: BuildOptionsContainer) -> None:
             ) as docker:
 
                 build_on_docker(
-                    build_step.options,
+                    all_options,
                     build_step.platform_configs,
                     docker,
                     container_project_path,
@@ -338,7 +331,7 @@ def build(all_options: BuildOptionsContainer) -> None:
             log.step_end_with_error(
                 f"Command {error.cmd} failed with code {error.returncode}. {error.stdout}"
             )
-            troubleshoot(build_step.options, error)
+            troubleshoot(all_options, error)
             sys.exit(1)
 
 
@@ -349,16 +342,18 @@ def _matches_prepared_command(error_cmd: List[str], command_template: str) -> bo
     return error_cmd[2].startswith(command_prefix)
 
 
-def troubleshoot(options: BuildOptions, error: Exception) -> None:
+def troubleshoot(all_options: BuildOptionsContainer, error: Exception) -> None:
 
     if isinstance(error, subprocess.CalledProcessError) and (
         error.cmd[0:4] == ["python", "-m", "pip", "wheel"]
         or error.cmd[0:3] == ["python", "-m", "build"]
-        or _matches_prepared_command(error.cmd, options.repair_command)
+        or _matches_prepared_command(
+            error.cmd, all_options.general_build_options.repair_command
+        )  # TODO
     ):
         # the wheel build step failed
         print("Checking for common errors...")
-        so_files = list(options.package_dir.glob("**/*.so"))
+        so_files = list(all_options.package_dir.glob("**/*.so"))
 
         if so_files:
             print(
