@@ -148,18 +148,20 @@ def main() -> None:
         else os.environ.get("CIBW_OUTPUT_DIR", "wheelhouse")
     )
 
-    build_options = compute_options(
+    all_build_options, build_options_by_selector = compute_options(
         platform, package_dir, output_dir, args.config_file, args.archs, args.prerelease_pythons
     )
 
     identifiers = get_build_identifiers(
-        platform, build_options.build_selector, build_options.architectures
+        platform, all_build_options.build_selector, all_build_options.architectures
     )
 
     if args.print_build_identifiers:
         for identifier in identifiers:
             print(identifier)
         sys.exit(0)
+
+    build_options = BuildOptionsContainer(all_build_options, build_options_by_selector, identifiers)
 
     # Add CIBUILDWHEEL environment variable
     # This needs to be passed on to the docker container in linux.py

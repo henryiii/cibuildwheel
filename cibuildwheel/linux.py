@@ -117,7 +117,7 @@ def build_on_docker(
 
     for config in platform_configs:
         log.build_start(config.identifier)
-        options = all_options.get(config.identifier)
+        options = all_options[config.identifier]
 
         dependency_constraint_flags: List[PathOrStr] = []
 

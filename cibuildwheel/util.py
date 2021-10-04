@@ -270,18 +270,23 @@ class SimpleConfig(Protocol):
 
 
 SC = TypeVar("SC", bound=SimpleConfig)
+T = TypeVar("T", bound="BuildOptionsContainer")
 
 
 @dataclasses.dataclass
 class BuildOptionsContainer:
     general_build_options: BuildOptions
     build_options_by_selector: Dict[str, BuildOptions]
+    identifiers: List[str]
 
-    def get(self, identifier: str) -> BuildOptions:
+    def __getitem__(self, identifier: str) -> BuildOptions:
+        assert identifier in self.identifiers
+
         for sel in self.build_options_by_selector:
             bs = BuildSelector(build_config=sel, skip_config="")
             if bs(identifier):
                 return self.build_options_by_selector[sel]
+
         return self.general_build_options
 
     def values(self) -> Iterable[BuildOptions]:
@@ -316,18 +321,19 @@ class BuildOptionsContainer:
 
     def produce_image_batches(
         self,
-        identifier_strs: List[SC],
+        configurations: List[SC],
         platform_tag: str,
         platform_arch: str,
     ) -> Iterator[Tuple[List[SC], str]]:
 
         docker_images: Mapping[str, List[SC]] = defaultdict(list)
 
-        for config in identifier_strs:
+        for config in configurations:
+            build_options = self[config.identifier]
             images = (
-                self.get(config.identifier).manylinux_images
+                build_options.manylinux_images
                 if platform_tag.startswith("manylinux")
-                else self.get(config.identifier).musllinux_images
+                else build_options.musllinux_images
             )
             assert images is not None
             docker_images[images[platform_arch]].append(config)
@@ -335,11 +341,11 @@ class BuildOptionsContainer:
         for image, configs in docker_images.items():
             yield configs, image
 
-    def check_build_selectors(self, identifier_strs: List[str]) -> None:
+    def check_build_selectors(self) -> None:
         hits = Counter[str]()
         for sel in self.build_options_by_selector:
             bs = BuildSelector(build_config=sel, skip_config="")
-            hits += Counter(i for i in identifier_strs if bs(i))
+            hits += Counter(i for i in self.identifiers if bs(i))
 
         non_unique_identifers = {idnt for idnt, count in hits.items() if count > 1}
         if non_unique_identifers:
@@ -353,13 +359,6 @@ class BuildOptionsContainer:
                     if bs(i):
                         print(f"  {sel}: {i} (nonunique match)")
             sys.exit(1)
-
-    def get_build_options(self, identfier: str) -> BuildOptions:
-        for build_str in self.build_options_by_selector:
-            build_sel = BuildSelector(build_config=build_str, skip_config="")
-            if build_sel(identfier):
-                return self.build_options_by_selector[build_str]
-        return self.general_build_options
 
     def __str__(self) -> str:
         results = []

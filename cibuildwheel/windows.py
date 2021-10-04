@@ -265,7 +265,7 @@ def build(all_options: BuildOptionsContainer) -> None:
         )
 
         for config in python_configurations:
-            options = all_options.get(config.identifier)
+            options = all_options[config.identifier]
             log.build_start(config.identifier)
 
             dependency_constraint_flags: Sequence[PathOrStr] = []

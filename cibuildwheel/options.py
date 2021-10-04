@@ -18,7 +18,6 @@ from .util import (
     MUSLLINUX_ARCHS,
     BuildFrontend,
     BuildOptions,
-    BuildOptionsContainer,
     BuildSelector,
     DependencyConstraints,
     TestSelector,
@@ -239,7 +238,7 @@ def compute_options(
     config_file: Optional[str],
     args_archs: Optional[str],
     prerelease_pythons: bool,
-) -> BuildOptionsContainer:
+) -> Tuple[BuildOptions, Dict[str, BuildOptions]]:
     """
     Compute the options from the environment and configuration file.
     """
@@ -434,7 +433,7 @@ def _compute_all_options(
     platform: PlatformName,
     package_dir: Path,
     output_dir: Path,
-) -> BuildOptionsContainer:
+) -> Tuple[BuildOptions, Dict[str, BuildOptions]]:
     args = (args_archs, build_selector, test_selector, platform, package_dir, output_dir)
 
     general_build_options = _compute_single_options(options, *args)
@@ -444,9 +443,7 @@ def _compute_all_options(
         s: _compute_single_options(options.override(s), *args) for s in selectors
     }
 
-    build_options = BuildOptionsContainer(general_build_options, build_options_by_selector)
-
-    return build_options
+    return general_build_options, build_options_by_selector
 
 
 def deprecated_selectors(name: str, selector: str, *, error: bool = False) -> None:
