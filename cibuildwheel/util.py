@@ -270,11 +270,11 @@ class SimpleConfig(Protocol):
 
 
 SC = TypeVar("SC", bound=SimpleConfig)
-T = TypeVar("T", bound="BuildOptionsContainer")
+T = TypeVar("T", bound="AllBuildOptions")
 
 
 @dataclasses.dataclass
-class BuildOptionsContainer:
+class AllBuildOptions:
     general_build_options: BuildOptions
     build_options_by_selector: Dict[str, BuildOptions]
     identifiers: List[str]
@@ -339,6 +339,8 @@ class BuildOptionsContainer:
             docker_images[images[platform_arch]].append(config)
 
         for image, configs in docker_images.items():
+            # TODO: check for colisions for identifiers in configs
+            # Some settings (before-all) are not overridable in the same image
             yield configs, image
 
     def check_build_selectors(self) -> None:
@@ -349,10 +351,8 @@ class BuildOptionsContainer:
 
         non_unique_identifers = {idnt for idnt, count in hits.items() if count > 1}
         if non_unique_identifers:
-            print(
-                "cibuildwheel: error, the windows/macOS selectors must match uniquely",
-                file=sys.stderr,
-            )
+            msg = "cibuildwheel: error, the windows/macOS selectors must match uniquely"
+            print(msg, file=sys.stderr)
             for sel in self.build_options_by_selector:
                 bs = BuildSelector(build_config=sel, skip_config="")
                 for i in non_unique_identifers:

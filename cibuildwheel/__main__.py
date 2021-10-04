@@ -14,7 +14,7 @@ from cibuildwheel.architecture import Architecture, allowed_architectures_check
 from cibuildwheel.options import compute_options
 from cibuildwheel.typing import PLATFORMS, PlatformName, assert_never
 from cibuildwheel.util import (
-    BuildOptionsContainer,
+    AllBuildOptions,
     BuildSelector,
     Unbuffered,
     detect_ci_provider,
@@ -161,7 +161,7 @@ def main() -> None:
             print(identifier)
         sys.exit(0)
 
-    build_options = BuildOptionsContainer(all_build_options, build_options_by_selector, identifiers)
+    build_options = AllBuildOptions(all_build_options, build_options_by_selector, identifiers)
 
     # Add CIBUILDWHEEL environment variable
     # This needs to be passed on to the docker container in linux.py
@@ -202,7 +202,7 @@ def main() -> None:
             assert_never(platform)
 
 
-def print_preamble(platform: str, build_options: BuildOptionsContainer) -> None:
+def print_preamble(platform: str, build_options: AllBuildOptions) -> None:
     print(
         textwrap.dedent(
             """
@@ -256,7 +256,7 @@ def get_build_identifiers(
     return [config.identifier for config in python_configurations]
 
 
-def detect_warnings(platform: str, all_options: BuildOptionsContainer) -> List[str]:
+def detect_warnings(platform: str, all_options: AllBuildOptions) -> List[str]:
     warnings = []
 
     # warn about deprecated {python} and {pip}

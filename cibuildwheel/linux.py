@@ -9,7 +9,7 @@ from .docker_container import DockerContainer
 from .logger import log
 from .typing import PathOrStr, assert_never
 from .util import (
-    BuildOptionsContainer,
+    AllBuildOptions,
     BuildSelector,
     NonPlatformWheelError,
     get_build_verbosity_extra_flags,
@@ -54,7 +54,7 @@ def get_python_configurations(
 
 
 def get_build_steps(
-    all_options: BuildOptionsContainer, python_configurations: List[PythonConfiguration]
+    all_options: AllBuildOptions, python_configurations: List[PythonConfiguration]
 ) -> Iterator[BuildStep]:
     platforms = [
         ("cp", "manylinux_x86_64", "x86_64"),
@@ -89,7 +89,7 @@ def get_build_steps(
 
 
 def build_on_docker(
-    all_options: BuildOptionsContainer,
+    all_options: AllBuildOptions,
     platform_configs: List[PythonConfiguration],
     docker: DockerContainer,
     container_project_path: PurePath,
@@ -284,7 +284,7 @@ def build_on_docker(
     log.step_end()
 
 
-def build(all_options: BuildOptionsContainer) -> None:
+def build(all_options: AllBuildOptions) -> None:
     try:
         # check docker is installed
         subprocess.run(["docker", "--version"], check=True, stdout=subprocess.DEVNULL)
@@ -342,7 +342,7 @@ def _matches_prepared_command(error_cmd: List[str], command_template: str) -> bo
     return error_cmd[2].startswith(command_prefix)
 
 
-def troubleshoot(all_options: BuildOptionsContainer, error: Exception) -> None:
+def troubleshoot(all_options: AllBuildOptions, error: Exception) -> None:
 
     if isinstance(error, subprocess.CalledProcessError) and (
         error.cmd[0:4] == ["python", "-m", "pip", "wheel"]

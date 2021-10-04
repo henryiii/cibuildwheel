@@ -14,8 +14,8 @@ from .environment import ParsedEnvironment
 from .logger import log
 from .typing import Literal, PathOrStr, assert_never
 from .util import (
+    AllBuildOptions,
     BuildFrontend,
-    BuildOptionsContainer,
     BuildSelector,
     NonPlatformWheelError,
     download,
@@ -343,10 +343,12 @@ def setup_python(
     return env
 
 
-def build(all_options: BuildOptionsContainer) -> None:
+def build(all_options: AllBuildOptions) -> None:
     temp_dir = Path(tempfile.mkdtemp(prefix="cibuildwheel"))
     built_wheel_dir = temp_dir / "built_wheel"
     repaired_wheel_dir = temp_dir / "repaired_wheel"
+
+    all_options.check_build_selectors()
 
     try:
         if all_options.before_all:
