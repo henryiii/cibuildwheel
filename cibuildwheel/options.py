@@ -296,6 +296,20 @@ def compute_options(
     )
 
 
+def _get_pinned_docker_images() -> Mapping[str, Mapping[str, str]]:
+    """
+    This looks like a dict of dicts, e.g.
+    { 'x86_64': {'manylinux1': '...', 'manylinux2010': '...', 'manylinux2014': '...'},
+      'i686': {'manylinux1': '...', 'manylinux2010': '...', 'manylinux2014': '...'},
+      'pypy_x86_64': {'manylinux2010': '...' }
+      ... }
+    """
+    pinned_docker_images_file = resources_dir / "pinned_docker_images.cfg"
+    all_pinned_docker_images = ConfigParser()
+    all_pinned_docker_images.read(pinned_docker_images_file)
+    return all_pinned_docker_images
+
+
 def _compute_single_options(
     options: ConfigOptions,
     args_archs: Optional[str],
@@ -365,14 +379,7 @@ def _compute_single_options(
     manylinux_images: Dict[str, str] = {}
     musllinux_images: Dict[str, str] = {}
     if platform == "linux":
-        pinned_docker_images_file = resources_dir / "pinned_docker_images.cfg"
-        all_pinned_docker_images = ConfigParser()
-        all_pinned_docker_images.read(pinned_docker_images_file)
-        # all_pinned_docker_images looks like a dict of dicts, e.g.
-        # { 'x86_64': {'manylinux1': '...', 'manylinux2010': '...', 'manylinux2014': '...'},
-        #   'i686': {'manylinux1': '...', 'manylinux2010': '...', 'manylinux2014': '...'},
-        #   'pypy_x86_64': {'manylinux2010': '...' }
-        #   ... }
+        all_pinned_docker_images = _get_pinned_docker_images()
 
         for build_platform in MANYLINUX_ARCHS:
             pinned_images = all_pinned_docker_images[build_platform]
@@ -387,6 +394,7 @@ def _compute_single_options(
             else:
                 image = config_value
 
+            assert image is not None
             manylinux_images[build_platform] = image
 
         for build_platform in MUSLLINUX_ARCHS:

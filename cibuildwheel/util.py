@@ -280,8 +280,6 @@ class AllBuildOptions:
     identifiers: List[str]
 
     def __getitem__(self, identifier: str) -> BuildOptions:
-        assert identifier in self.identifiers
-
         for sel in self.build_options_by_selector:
             bs = BuildSelector(build_config=sel, skip_config="")
             if bs(identifier):
