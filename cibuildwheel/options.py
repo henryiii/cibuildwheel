@@ -258,8 +258,10 @@ class OptionsReader:
     @contextmanager
     def identifier(self, identifier: Optional[str]) -> Iterator[None]:
         self.current_identifier = identifier
-        yield
-        self.current_identifier = None
+        try:
+            yield
+        finally:
+            self.current_identifier = None
 
     def get(
         self,
