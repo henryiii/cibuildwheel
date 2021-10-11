@@ -336,11 +336,10 @@ class Options:
 
         if args.config_file is not None:
             return Path(args.config_file.format(package=args.package_dir))
-        else:
-            # return pyproject.toml, if it's available
-            pyproject_toml_path = Path(args.package_dir) / "pyproject.toml"
-            if pyproject_toml_path.exists():
-                return pyproject_toml_path
+        # return pyproject.toml, if it's available
+        pyproject_toml_path = Path(args.package_dir) / "pyproject.toml"
+        if pyproject_toml_path.exists():
+            return pyproject_toml_path
 
         return None
 
@@ -535,10 +534,11 @@ class Options:
         deprecated_selectors("CIBW_TEST_SKIP", test_selector.skip_config)
 
     def summary(self, identifiers: List[str]) -> str:
-        lines = []
+        lines = [
+            f"{option_name}: {option_value!r}"
+            for option_name, option_value in sorted(self.globals._asdict().items())
+        ]
 
-        for option_name, option_value in sorted(self.globals._asdict().items()):
-            lines.append(f"{option_name}: {option_value!r}")
 
         build_option_defaults = self.build_options(identifier=None)
 

@@ -126,9 +126,10 @@ class IdentifierSelector:
                 return False
 
         # filter out the prerelease pythons if self.prerelease_pythons is False
-        if not self.prerelease_pythons:
-            if selector_matches(BuildSelector.PRERELEASE_SKIP, build_id):
-                return False
+        if not self.prerelease_pythons and selector_matches(
+            BuildSelector.PRERELEASE_SKIP, build_id
+        ):
+            return False
 
         should_build = selector_matches(self.build_config, build_id)
         should_skip = selector_matches(self.skip_config, build_id)
