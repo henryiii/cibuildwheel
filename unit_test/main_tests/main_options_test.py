@@ -3,10 +3,12 @@ from fnmatch import fnmatch
 from pathlib import Path
 
 import pytest
+import toml
 
 from cibuildwheel.__main__ import main
 from cibuildwheel.environment import ParsedEnvironment
-from cibuildwheel.util import BuildSelector
+from cibuildwheel.options import BuildOptions, _get_pinned_docker_images
+from cibuildwheel.util import BuildSelector, resources_dir
 
 # CIBW_PLATFORM is tested in main_platform_test.py
 
@@ -304,3 +306,32 @@ def test_before_all(before_all, platform_specific, platform, intercepted_build_a
     build_options = intercepted_build_args.args[0].build_options(identifier=None)
 
     assert build_options.before_all == (before_all or "")
+
+
+def test_defaults(platform, intercepted_build_args):
+    main()
+
+    build_options: BuildOptions = intercepted_build_args.args[0].build_options(identifier=None)
+    defaults_config_path = resources_dir / "defaults.toml"
+    defaults_toml = toml.load(defaults_config_path)
+
+    root_defaults = defaults_toml["tool"]["cibuildwheel"]
+    platform_defaults = defaults_toml["tool"]["cibuildwheel"][platform]
+
+    defaults = {}
+    defaults.update(root_defaults)
+    defaults.update(platform_defaults)
+
+    # test a few options
+    assert build_options.before_all == defaults["before-all"]
+    repair_wheel_default = defaults["repair-wheel-command"]
+    if isinstance(repair_wheel_default, list):
+        repair_wheel_default = " && ".join(repair_wheel_default)
+    assert build_options.repair_command == repair_wheel_default
+    assert build_options.build_frontend == defaults["build-frontend"]
+
+    if platform == "linux":
+        assert build_options.manylinux_images
+        pinned_images = _get_pinned_docker_images()
+        default_x86_64_image = pinned_images["x86_64"][defaults["manylinux-x86_64-image"]]
+        assert build_options.manylinux_images["x86_64"] == default_x86_64_image

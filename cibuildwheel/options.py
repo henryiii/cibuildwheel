@@ -163,7 +163,7 @@ class OptionsReader:
         self,
         config_file_path: Optional[Path] = None,
         *,
-        platform: str,
+        platform: PlatformName,
         disallow: Optional[Dict[str, Set[str]]] = None,
     ) -> None:
         self.platform = platform
@@ -324,7 +324,7 @@ class Options:
 
         self.reader = OptionsReader(
             self.config_file_path,
-            platform=command_line_arguments.platform,
+            platform=platform,
             disallow=DISALLOWED_OPTIONS,
         )
 
