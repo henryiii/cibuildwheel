@@ -1,3 +1,5 @@
+import platform as platform_module
+
 from cibuildwheel.__main__ import get_build_identifiers
 from cibuildwheel.environment import parse_environment
 from cibuildwheel.options import (
@@ -40,17 +42,21 @@ def get_default_command_line_arguments() -> CommandLineArguments:
     return defaults
 
 
-def test_options_1(tmp_path):
+def test_options_1(tmp_path, monkeypatch):
     with tmp_path.joinpath("pyproject.toml").open("w") as f:
         f.write(PYPROJECT_1)
 
     args = get_default_command_line_arguments()
     args.package_dir = str(tmp_path)
 
-    options = Options("linux", args)
+    monkeypatch.setattr(platform_module, "machine", lambda: "x86_64")
+
+    options = Options(platform="linux", command_line_arguments=args)
 
     identifiers = get_build_identifiers(
-        "linux", options.globals.build_selector, options.globals.architectures
+        platform="linux",
+        build_selector=options.globals.build_selector,
+        architectures=options.globals.architectures,
     )
 
     override_display = """\
