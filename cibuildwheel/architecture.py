@@ -112,9 +112,9 @@ def allowed_architectures_check(
         msg += " If you want to set emulation architectures on Linux, use CIBW_ARCHS_LINUX instead."
 
     if not architectures <= allowed_architectures:
-        msg = f"Invalid archs option {architectures}. " + msg
+        msg = f"Invalid archs option {architectures}. {msg}"
         raise ValueError(msg)
 
     if not architectures:
-        msg = "Empty archs option set. " + msg
+        msg = f"Empty archs option set. {msg}"
         raise ValueError(msg)

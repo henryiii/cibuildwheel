@@ -95,7 +95,7 @@ def test_manylinux_images(
     architecture, image, full_image, platform, intercepted_build_args, monkeypatch
 ):
     if image is not None:
-        monkeypatch.setenv("CIBW_MANYLINUX_" + architecture.upper() + "_IMAGE", image)
+        monkeypatch.setenv(f"CIBW_MANYLINUX_{architecture.upper()}_IMAGE", image)
 
     main()
 
@@ -149,7 +149,7 @@ def test_repair_command(
 def test_environment(environment, platform_specific, platform, intercepted_build_args, monkeypatch):
     env_string = " ".join(f"{k}={v}" for k, v in environment.items())
     if platform_specific:
-        monkeypatch.setenv("CIBW_ENVIRONMENT_" + platform.upper(), env_string)
+        monkeypatch.setenv(f"CIBW_ENVIRONMENT_{platform.upper()}", env_string)
         monkeypatch.setenv("CIBW_ENVIRONMENT", "overwritten")
     else:
         monkeypatch.setenv("CIBW_ENVIRONMENT", env_string)
@@ -170,7 +170,7 @@ def test_test_requires(
 ):
     if test_requires is not None:
         if platform_specific:
-            monkeypatch.setenv("CIBW_TEST_REQUIRES_" + platform.upper(), test_requires)
+            monkeypatch.setenv(f"CIBW_TEST_REQUIRES_{platform.upper()}", test_requires)
             monkeypatch.setenv("CIBW_TEST_REQUIRES", "overwritten")
         else:
             monkeypatch.setenv("CIBW_TEST_REQUIRES", test_requires)
@@ -187,7 +187,7 @@ def test_test_requires(
 def test_test_extras(test_extras, platform_specific, platform, intercepted_build_args, monkeypatch):
     if test_extras is not None:
         if platform_specific:
-            monkeypatch.setenv("CIBW_TEST_EXTRAS_" + platform.upper(), test_extras)
+            monkeypatch.setenv(f"CIBW_TEST_EXTRAS_{platform.upper()}", test_extras)
             monkeypatch.setenv("CIBW_TEST_EXTRAS", "overwritten")
         else:
             monkeypatch.setenv("CIBW_TEST_EXTRAS", test_extras)
@@ -196,7 +196,7 @@ def test_test_extras(test_extras, platform_specific, platform, intercepted_build
 
     build_options = intercepted_build_args.args[0].build_options(identifier=None)
 
-    assert build_options.test_extras == ("[" + test_extras + "]" if test_extras else "")
+    assert build_options.test_extras == (f"[{test_extras}]" if test_extras else "")
 
 
 @pytest.mark.parametrize("test_command", [None, "test --command"])
@@ -206,7 +206,7 @@ def test_test_command(
 ):
     if test_command is not None:
         if platform_specific:
-            monkeypatch.setenv("CIBW_TEST_COMMAND_" + platform.upper(), test_command)
+            monkeypatch.setenv(f"CIBW_TEST_COMMAND_{platform.upper()}", test_command)
             monkeypatch.setenv("CIBW_TEST_COMMAND", "overwritten")
         else:
             monkeypatch.setenv("CIBW_TEST_COMMAND", test_command)
@@ -225,7 +225,7 @@ def test_before_build(
 ):
     if before_build is not None:
         if platform_specific:
-            monkeypatch.setenv("CIBW_BEFORE_BUILD_" + platform.upper(), before_build)
+            monkeypatch.setenv(f"CIBW_BEFORE_BUILD_{platform.upper()}", before_build)
             monkeypatch.setenv("CIBW_BEFORE_BUILD", "overwritten")
         else:
             monkeypatch.setenv("CIBW_BEFORE_BUILD", before_build)
@@ -243,7 +243,11 @@ def test_build_verbosity(
 ):
     if build_verbosity is not None:
         if platform_specific:
-            monkeypatch.setenv("CIBW_BUILD_VERBOSITY_" + platform.upper(), str(build_verbosity))
+            monkeypatch.setenv(
+                f"CIBW_BUILD_VERBOSITY_{platform.upper()}",
+                str(build_verbosity),
+            )
+
             monkeypatch.setenv("CIBW_BUILD_VERBOSITY", "overwritten")
         else:
             monkeypatch.setenv("CIBW_BUILD_VERBOSITY", str(build_verbosity))
@@ -296,7 +300,7 @@ def test_build_selector_deprecated_error(
 def test_before_all(before_all, platform_specific, platform, intercepted_build_args, monkeypatch):
     if before_all is not None:
         if platform_specific:
-            monkeypatch.setenv("CIBW_BEFORE_ALL_" + platform.upper(), before_all)
+            monkeypatch.setenv(f"CIBW_BEFORE_ALL_{platform.upper()}", before_all)
             monkeypatch.setenv("CIBW_BEFORE_ALL", "overwritten")
         else:
             monkeypatch.setenv("CIBW_BEFORE_ALL", before_all)
