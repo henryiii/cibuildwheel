@@ -204,8 +204,7 @@ def read_python_configs(config: PlatformName) -> List[Dict[str, str]]:
     input_file = resources_dir / "build-platforms.toml"
     with input_file.open("rb") as f:
         loaded_file = tomli.load(f)
-    results: List[Dict[str, str]] = list(loaded_file[config]["python_configurations"])
-    return results
+    return list(loaded_file[config]["python_configurations"])
 
 
 def selector_matches(patterns: str, string: str) -> bool:
@@ -340,10 +339,11 @@ class DependencyConstraints:
         return f"{self.__class__.__name__}({self.base_file_path!r})"
 
     def __eq__(self, o: object) -> bool:
-        if not isinstance(o, DependencyConstraints):
-            return False
-
-        return self.base_file_path == o.base_file_path
+        return (
+            self.base_file_path == o.base_file_path
+            if isinstance(o, DependencyConstraints)
+            else False
+        )
 
 
 class NonPlatformWheelError(Exception):
@@ -464,7 +464,7 @@ def _ensure_virtualenv() -> Path:
     version = str(loaded_file["version"])
     url = str(loaded_file["url"])
     path = CIBW_CACHE_PATH / f"virtualenv-{version}.pyz"
-    with FileLock(str(path) + ".lock"):
+    with FileLock(f'{str(path)}.lock'):
         if not path.exists():
             download(url, path)
     return path

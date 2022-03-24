@@ -358,7 +358,7 @@ def build(options: Options, tmp_path: Path) -> None:  # pylint: disable=unused-a
 
 
 def _matches_prepared_command(error_cmd: List[str], command_template: str) -> bool:
-    if len(error_cmd) < 3 or error_cmd[0:2] != ["sh", "-c"]:
+    if len(error_cmd) < 3 or error_cmd[:2] != ["sh", "-c"]:
         return False
     command_prefix = command_template.split("{", maxsplit=1)[0].strip()
     return error_cmd[2].startswith(command_prefix)
@@ -367,17 +367,15 @@ def _matches_prepared_command(error_cmd: List[str], command_template: str) -> bo
 def troubleshoot(options: Options, error: Exception) -> None:
 
     if isinstance(error, subprocess.CalledProcessError) and (
-        error.cmd[0:4] == ["python", "-m", "pip", "wheel"]
-        or error.cmd[0:3] == ["python", "-m", "build"]
+        error.cmd[:4] == ["python", "-m", "pip", "wheel"]
+        or error.cmd[:3] == ["python", "-m", "build"]
         or _matches_prepared_command(
             error.cmd, options.build_options(None).repair_command
-        )  # TODO allow matching of overrides too?
+        )
     ):
         # the wheel build step or the repair step failed
         print("Checking for common errors...")
-        so_files = list(options.globals.package_dir.glob("**/*.so"))
-
-        if so_files:
+        if so_files := list(options.globals.package_dir.glob("**/*.so")):
             print(
                 textwrap.dedent(
                     """

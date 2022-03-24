@@ -187,7 +187,7 @@ def build_description_from_identifier(identifier: str) -> str:
 
     build_description = ""
 
-    python_interpreter = python_identifier[0:2]
+    python_interpreter = python_identifier[:2]
     python_version = python_identifier[2:]
 
     if python_interpreter == "cp":

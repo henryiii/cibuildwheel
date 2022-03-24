@@ -202,11 +202,7 @@ class DockerContainer:
         )
         self.bash_stdin.flush()
 
-        if capture_output:
-            output_io: IO[bytes] = io.BytesIO()
-        else:
-            output_io = sys.stdout.buffer
-
+        output_io = io.BytesIO() if capture_output else sys.stdout.buffer
         while True:
             line = self.bash_stdout.readline()
 
@@ -222,7 +218,7 @@ class DockerContainer:
                 return_code_str = line[footer_offset : footer_offset + 4]
                 return_code = int(return_code_str)
                 # add the last line to output, without the footer
-                output_io.write(line[0:footer_offset])
+                output_io.write(line[:footer_offset])
                 break
             else:
                 output_io.write(line)

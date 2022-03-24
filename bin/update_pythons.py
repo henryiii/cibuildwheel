@@ -223,8 +223,7 @@ class CPythonVersions:
             response.raise_for_status()
             file_info = response.json()
 
-            urls = [rf["url"] for rf in file_info if file_ident in rf["url"]]
-            if urls:
+            if urls := [rf["url"] for rf in file_info if file_ident in rf["url"]]:
                 return ConfigMacOS(
                     identifier=identifier,
                     version=f"{new_version.major}.{new_version.minor}",

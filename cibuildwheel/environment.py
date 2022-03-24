@@ -32,13 +32,10 @@ def split_env_items(env_string: str) -> List[str]:
         return []
 
     command_node = bashlex.parsesingle(env_string)
-    result = []
-
-    for word_node in command_node.parts:
-        part_string = env_string[word_node.pos[0] : word_node.pos[1]]
-        result.append(part_string)
-
-    return result
+    return [
+        env_string[word_node.pos[0] : word_node.pos[1]]
+        for word_node in command_node.parts
+    ]
 
 
 class EnvironmentAssignment(Protocol):

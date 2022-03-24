@@ -68,7 +68,7 @@ def test_cpp11(tmp_path):
     cpp11_project.generate(project_dir)
 
     actual_wheels = utils.cibuildwheel_run(project_dir)
-    expected_wheels = [w for w in utils.expected_wheels("spam", "0.1.0")]
+    expected_wheels = list(utils.expected_wheels("spam", "0.1.0"))
 
     assert set(actual_wheels) == set(expected_wheels)
 
@@ -87,7 +87,7 @@ def test_cpp14(tmp_path):
     cpp14_project.generate(project_dir)
 
     actual_wheels = utils.cibuildwheel_run(project_dir)
-    expected_wheels = [w for w in utils.expected_wheels("spam", "0.1.0")]
+    expected_wheels = list(utils.expected_wheels("spam", "0.1.0"))
 
     assert set(actual_wheels) == set(expected_wheels)
 

@@ -114,7 +114,7 @@ def install_pypy(tmp: Path, url: str) -> Path:
     extension = ".tar.bz2"
     assert pypy_tar_bz2.endswith(extension)
     installation_path = CIBW_CACHE_PATH / pypy_tar_bz2[: -len(extension)]
-    with FileLock(str(installation_path) + ".lock"):
+    with FileLock(f'{str(installation_path)}.lock'):
         if not installation_path.exists():
             downloaded_tar_bz2 = tmp / pypy_tar_bz2
             download(url, downloaded_tar_bz2)
@@ -226,11 +226,12 @@ def setup_python(
         # needs the correct SDK selected.
         sdks = get_macos_sdks()
 
-        # Different versions of Xcode contain different SDK versions...
-        # we're happy with anything newer than macOS 11.0
-        arm64_compatible_sdks = [s for s in sdks if not s.startswith("macosx10.")]
+        if arm64_compatible_sdks := [
+            s for s in sdks if not s.startswith("macosx10.")
+        ]:
+            env.setdefault("SDKROOT", arm64_compatible_sdks[0])
 
-        if not arm64_compatible_sdks:
+        else:
             log.warning(
                 unwrap(
                     """
@@ -239,9 +240,6 @@ def setup_python(
                     """
                 )
             )
-        else:
-            env.setdefault("SDKROOT", arm64_compatible_sdks[0])
-
     log.step("Installing build tools...")
     if build_frontend == "pip":
         call(

@@ -27,19 +27,19 @@ def parse(contents: str) -> str | None:
 
 def check_repo(name: str, contents: str) -> str:
     s = f"  {name}: "
-    if name == "setup.py":
+    if name == "setup.cfg":
+        s += "✅" if "python_requires" in contents else "❌"
+    elif name == "setup.py":
         if "python_requires" not in contents:
             s += "❌"
         res = parse(contents)
         if res is None:
             s += "⚠️ "
         elif res:
-            s += "✅ " + res
+            s += f"✅ {res}"
         elif "python_requires" in contents:
             s += "☑️"
 
-    elif name == "setup.cfg":
-        s += "✅" if "python_requires" in contents else "❌"
     else:
         s += "✅" if "requires-python" in contents else "❌"
 

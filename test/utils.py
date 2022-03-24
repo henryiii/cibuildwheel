@@ -93,10 +93,7 @@ def _get_arm64_macosx_deployment_target(macosx_deployment_target: str) -> str:
     MACOSX_DEPLOYMENT_TARGET sets it.
     """
     version_tuple = tuple(map(int, macosx_deployment_target.split(".")))
-    if version_tuple <= (11, 0):
-        return "11.0"
-    else:
-        return macosx_deployment_target
+    return "11.0" if version_tuple <= (11, 0) else macosx_deployment_target
 
 
 def expected_wheels(
@@ -193,8 +190,10 @@ def expected_wheels(
         else:
             raise Exception("unsupported platform")
 
-        for platform_tag in platform_tags:
-            wheels.append(f"{package_name}-{package_version}-{python_abi_tag}-{platform_tag}.whl")
+        wheels.extend(
+            f"{package_name}-{package_version}-{python_abi_tag}-{platform_tag}.whl"
+            for platform_tag in platform_tags
+        )
 
     return wheels
 

@@ -33,7 +33,7 @@ from .util import (
 
 def get_nuget_args(version: str, arch: str, output_directory: Path) -> List[str]:
     platform_suffix = {"32": "x86", "64": "", "ARM64": "arm64"}
-    python_name = "python" + platform_suffix[arch]
+    python_name = f"python{platform_suffix[arch]}"
     return [
         python_name,
         "-Version",
@@ -81,7 +81,7 @@ def extract_zip(zip_src: Path, dest: Path) -> None:
 @lru_cache(maxsize=None)
 def _ensure_nuget() -> Path:
     nuget = CIBW_CACHE_PATH / "nuget.exe"
-    with FileLock(str(nuget) + ".lock"):
+    with FileLock(f'{str(nuget)}.lock'):
         if not nuget.exists():
             download("https://dist.nuget.org/win-x86-commandline/latest/nuget.exe", nuget)
     return nuget
@@ -90,8 +90,8 @@ def _ensure_nuget() -> Path:
 def install_cpython(version: str, arch: str) -> Path:
     base_output_dir = CIBW_CACHE_PATH / "nuget-cpython"
     nuget_args = get_nuget_args(version, arch, base_output_dir)
-    installation_path = base_output_dir / (nuget_args[0] + "." + version) / "tools"
-    with FileLock(str(base_output_dir) + f"-{version}-{arch}.lock"):
+    installation_path = base_output_dir / f'{nuget_args[0]}.{version}' / "tools"
+    with FileLock(f"{str(base_output_dir)}-{version}-{arch}.lock"):
         if not installation_path.exists():
             nuget = _ensure_nuget()
             call(nuget, "install", *nuget_args)
@@ -105,7 +105,7 @@ def install_pypy(tmp: Path, arch: str, url: str) -> Path:
     extension = ".zip"
     assert zip_filename.endswith(extension)
     installation_path = CIBW_CACHE_PATH / zip_filename[: -len(extension)]
-    with FileLock(str(installation_path) + ".lock"):
+    with FileLock(f'{str(installation_path)}.lock'):
         if not installation_path.exists():
             pypy_zip = tmp / zip_filename
             download(url, pypy_zip)

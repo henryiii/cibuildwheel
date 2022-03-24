@@ -237,11 +237,10 @@ def print_preamble(platform: str, options: Options, identifiers: List[str]) -> N
 
     print(f"Cache folder: {CIBW_CACHE_PATH}")
 
-    warnings = detect_warnings(options=options, identifiers=identifiers)
-    if warnings:
+    if warnings := detect_warnings(options=options, identifiers=identifiers):
         print("\nWarnings:")
         for warning in warnings:
-            print("  " + warning)
+            print(f"  {warning}")
 
     print("\nHere we go!\n")
 
