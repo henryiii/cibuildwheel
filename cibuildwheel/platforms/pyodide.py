@@ -18,7 +18,7 @@ from cibuildwheel import errors, platforms  # pylint: disable=cyclic-import
 from cibuildwheel.architecture import Architecture
 from cibuildwheel.frontend import get_build_frontend_extra_flags, prepare_config_settings
 from cibuildwheel.logger import log
-from cibuildwheel.platforms._run import run_host_build
+from cibuildwheel.platforms._run import ALL_STAGES, run_host_build
 from cibuildwheel.util import resources
 from cibuildwheel.util.cmd import call, shell
 from cibuildwheel.util.file import (
@@ -43,6 +43,7 @@ if TYPE_CHECKING:
 
     from cibuildwheel.environment import ParsedEnvironment
     from cibuildwheel.options import BuildOptions, Options
+    from cibuildwheel.platforms._run import Stage
     from cibuildwheel.selector import BuildSelector
 
 IS_WIN: Final[bool] = sys.platform.startswith("win")
@@ -352,8 +353,8 @@ class BuildState:
     pip_version: str
 
 
-def build(options: Options, tmp_path: Path) -> None:
-    run_host_build(platforms.pyodide, options, tmp_path)
+def build(options: Options, tmp_path: Path, stages: frozenset[Stage] = ALL_STAGES) -> None:
+    run_host_build(platforms.pyodide, options, tmp_path, stages=stages)
 
 
 def before_all(options: Options, python_configurations: Sequence[PythonConfiguration]) -> None:

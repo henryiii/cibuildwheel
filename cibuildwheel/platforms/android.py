@@ -26,7 +26,7 @@ from cibuildwheel.frontend import (
     prepare_config_settings,
 )
 from cibuildwheel.logger import log
-from cibuildwheel.platforms._run import run_host_build
+from cibuildwheel.platforms._run import ALL_STAGES, run_host_build
 from cibuildwheel.util import resources
 from cibuildwheel.util.cmd import call, shell
 from cibuildwheel.util.file import (
@@ -44,6 +44,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from cibuildwheel.options import BuildOptions, Options
+    from cibuildwheel.platforms._run import Stage
     from cibuildwheel.selector import BuildSelector
     from cibuildwheel.typing import PathOrStr
 
@@ -121,7 +122,7 @@ class BuildState:
     android_env: dict[str, str]
 
 
-def build(options: Options, tmp_path: Path) -> None:
+def build(options: Options, tmp_path: Path, stages: frozenset[Stage] = ALL_STAGES) -> None:
     if "ANDROID_HOME" not in os.environ:
         msg = (
             "ANDROID_HOME environment variable is not set. For instructions, see "
@@ -129,7 +130,7 @@ def build(options: Options, tmp_path: Path) -> None:
         )
         raise errors.FatalError(msg)
 
-    run_host_build(platforms.android, options, tmp_path)
+    run_host_build(platforms.android, options, tmp_path, stages=stages)
 
 
 def setup(config: PythonConfiguration, options: Options, tmp_path: Path) -> BuildState:
