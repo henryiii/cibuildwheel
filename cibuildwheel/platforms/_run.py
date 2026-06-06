@@ -25,7 +25,7 @@ from cibuildwheel import errors
 from cibuildwheel.audit import run_audit
 from cibuildwheel.logger import log
 from cibuildwheel.util.file import move_file
-from cibuildwheel.util.packaging import find_compatible_wheel
+from cibuildwheel.util.packaging import find_built_wheel, find_compatible_wheel
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -82,9 +82,12 @@ def find_prebuilt_wheel(output_dir: Path, identifier: str) -> Path:
     Used by the test-only stage, which consumes wheels produced by an earlier
     build-only stage rather than building them itself.
     """
-    wheel = find_compatible_wheel(sorted(output_dir.glob("*.whl")), identifier)
+    wheel = find_built_wheel(sorted(output_dir.glob("*.whl")), identifier)
     if wheel is None:
-        msg = f"No pre-built wheel for {identifier!r} found in {output_dir}"
+        msg = (
+            f"No pre-built wheel for {identifier!r} found in {output_dir}. "
+            "Run the build stage first, or check --output-dir."
+        )
         raise errors.FatalError(msg)
     return wheel
 
