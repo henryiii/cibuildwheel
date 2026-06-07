@@ -16,10 +16,11 @@ from cibuildwheel.audit import needs_audit, run_audit
 from cibuildwheel.frontend import get_build_frontend_extra_flags, prepare_config_settings
 from cibuildwheel.logger import log
 from cibuildwheel.oci_container import OCIContainer, OCIContainerEngineConfig, OCIPlatform
+from cibuildwheel.platforms._run import ALL_STAGES, Stage
 from cibuildwheel.util import resources
 from cibuildwheel.util.file import copy_test_sources
 from cibuildwheel.util.helpers import prepare_command, unwrap
-from cibuildwheel.util.packaging import find_compatible_wheel
+from cibuildwheel.util.packaging import find_built_wheel, find_compatible_wheel
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -177,6 +178,7 @@ def build_in_container(
     container_project_path: PurePath,
     container_package_dir: PurePath,
     local_tmp_dir: Path,
+    stages: frozenset[Stage] = ALL_STAGES,
 ) -> None:
     container_output_dir = PurePosixPath("/output")
 
@@ -188,7 +190,7 @@ def build_in_container(
     before_all_options_identifier = platform_configs[0].identifier
     before_all_options = options.build_options(before_all_options_identifier)
 
-    if before_all_options.before_all:
+    if Stage.BUILD in stages and before_all_options.before_all:
         log.step("Running before_all...")
 
         env = container.get_environment()
@@ -257,8 +259,24 @@ def build_in_container(
                 msg = "pip available on PATH doesn't match our installed instance. If you have modified PATH, ensure that you don't overwrite cibuildwheel's entry or insert pip above it."
                 raise errors.FatalError(msg)
 
-        compatible_wheel = find_compatible_wheel(built_wheels, config.identifier)
-        if compatible_wheel:
+        compatible_wheel = None
+        if Stage.BUILD not in stages:
+            # test-only: bring the already-built wheel into the container
+            host_wheel = find_built_wheel(
+                sorted(options.globals.output_dir.glob("*.whl")), config.identifier
+            )
+            if host_wheel is None:
+                msg = (
+                    f"No pre-built wheel for {config.identifier!r} found in "
+                    f"{options.globals.output_dir}. Run the build stage first."
+                )
+                raise errors.FatalError(msg)
+            prebuilt_dir = PurePosixPath("/tmp/cibuildwheel/prebuilt_wheel")
+            container.call(["rm", "-rf", prebuilt_dir])
+            container.call(["mkdir", "-p", prebuilt_dir])
+            container.copy_into(host_wheel, prebuilt_dir / host_wheel.name)
+            repaired_wheel = prebuilt_dir / host_wheel.name
+        elif compatible_wheel := find_compatible_wheel(built_wheels, config.identifier):
             log.step_end()
             print(
                 f"\nFound previously built wheel {compatible_wheel.name}, that's compatible with {config.identifier}. Skipping build step..."
@@ -391,7 +409,11 @@ def build_in_container(
                 finally:
                     shutil.rmtree(local_abi3audit_dir, ignore_errors=True)
 
-        if build_options.test_command and build_options.test_selector(config.identifier):
+        if (
+            Stage.TEST in stages
+            and build_options.test_command
+            and build_options.test_selector(config.identifier)
+        ):
             log.step("Testing wheel...")
 
             # set up a virtual environment to install and test from, to make sure
@@ -470,7 +492,7 @@ def build_in_container(
 
         # move repaired wheel to output
         output_wheel: Path | None = None
-        if compatible_wheel is None:
+        if Stage.BUILD in stages and compatible_wheel is None:
             container.call(["mkdir", "-p", container_output_dir])
             container.call(["mv", repaired_wheel, container_output_dir])
             built_wheels.append(container_output_dir / repaired_wheel.name)
@@ -478,13 +500,14 @@ def build_in_container(
 
         log.build_end(output_wheel)
 
-    log.step("Copying wheels back to host...")
-    # copy the output back into the host
-    container.copy_out(container_output_dir, options.globals.output_dir)
-    log.step_end()
+    if Stage.BUILD in stages:
+        log.step("Copying wheels back to host...")
+        # copy the output back into the host
+        container.copy_out(container_output_dir, options.globals.output_dir)
+        log.step_end()
 
 
-def build(options: Options, tmp_path: Path) -> None:
+def build(options: Options, tmp_path: Path, stages: frozenset[Stage] = ALL_STAGES) -> None:
     python_configurations = get_python_configurations(
         options.globals.build_selector, options.globals.architectures
     )
@@ -538,6 +561,7 @@ def build(options: Options, tmp_path: Path) -> None:
                     container_project_path=container_project_path,
                     container_package_dir=container_package_dir,
                     local_tmp_dir=tmp_path,
+                    stages=stages,
                 )
 
         except subprocess.CalledProcessError as error:

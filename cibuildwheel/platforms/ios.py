@@ -21,7 +21,7 @@ from cibuildwheel.frontend import (
     prepare_config_settings,
 )
 from cibuildwheel.logger import log
-from cibuildwheel.platforms._run import run_host_build
+from cibuildwheel.platforms._run import ALL_STAGES, run_host_build
 from cibuildwheel.platforms.macos import install_cpython as install_build_cpython
 from cibuildwheel.util import resources
 from cibuildwheel.util.cmd import call, shell, split_command
@@ -41,6 +41,7 @@ if TYPE_CHECKING:
     from cibuildwheel.architecture import Architecture
     from cibuildwheel.environment import ParsedEnvironment
     from cibuildwheel.options import BuildOptions, Options
+    from cibuildwheel.platforms._run import Stage
     from cibuildwheel.selector import BuildSelector
 
 
@@ -445,12 +446,12 @@ class BuildState:
     env: dict[str, str]
 
 
-def build(options: Options, tmp_path: Path) -> None:
+def build(options: Options, tmp_path: Path, stages: frozenset[Stage] = ALL_STAGES) -> None:
     if sys.platform != "darwin":
         msg = "iOS binaries can only be built on macOS"
         raise errors.FatalError(msg)
 
-    run_host_build(platforms.ios, options, tmp_path)
+    run_host_build(platforms.ios, options, tmp_path, stages=stages)
 
 
 def before_all(options: Options, python_configurations: Sequence[PythonConfiguration]) -> None:

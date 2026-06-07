@@ -16,7 +16,7 @@ from cibuildwheel.util.helpers import (
     unwrap,
     unwrap_preserving_paragraphs,
 )
-from cibuildwheel.util.packaging import find_compatible_wheel, is_abi3_wheel
+from cibuildwheel.util.packaging import find_built_wheel, find_compatible_wheel, is_abi3_wheel
 
 
 def test_format_safe() -> None:
@@ -102,6 +102,49 @@ def test_find_compatible_wheel_found(wheel: str, identifier: str) -> None:
 )
 def test_find_compatible_wheel_not_found(wheel: str, identifier: str) -> None:
     assert find_compatible_wheel([PurePath(wheel)], identifier) is None
+
+
+@pytest.mark.parametrize(
+    ("wheel", "identifier"),
+    [
+        # exact interpreter matches
+        ("foo-0.1-cp310-cp310-win_amd64.whl", "cp310-win_amd64"),
+        ("foo-0.1-cp310-cp310-win32.whl", "cp310-win32"),
+        ("foo-0.1-cp310-cp310-macosx_11_0_x86_64.whl", "cp310-macosx_x86_64"),
+        ("foo-0.1-cp310-cp310-macosx_11_0_universal2.whl", "cp310-macosx_universal2"),
+        ("foo-0.1-cp310-cp310-manylinux2014_x86_64.whl", "cp310-manylinux_x86_64"),
+        ("foo-0.1-cp310-cp310-musllinux_1_1_x86_64.whl", "cp310-musllinux_x86_64"),
+        ("foo-0.1-cp313-cp313t-manylinux2014_x86_64.whl", "cp313t-manylinux_x86_64"),
+        ("foo-0.1-pp310-pypy310_pp73-win_amd64.whl", "pp310-win_amd64"),
+        ("foo-0.1-cp313-cp313-android_24_x86_64.whl", "cp313-android_x86_64"),
+        ("foo-0.1-cp313-cp313-ios_13_0_arm64_iphoneos.whl", "cp313-ios_arm64_iphoneos"),
+        ("foo-0.1-cp312-cp312-pyodide_2024_0_wasm32.whl", "cp312-pyodide_wasm32"),
+        # cross-compatible (abi3/none) still match
+        ("foo-0.1-cp38-abi3-manylinux2014_x86_64.whl", "cp310-manylinux_x86_64"),
+        ("foo-0.1-py3-none-win_amd64.whl", "cp310-win_amd64"),
+    ],
+)
+def test_find_built_wheel_found(wheel: str, identifier: str) -> None:
+    wheel_ = PurePath(wheel)
+    assert find_built_wheel([wheel_], identifier) is wheel_
+
+
+@pytest.mark.parametrize(
+    ("wheel", "identifier"),
+    [
+        ("foo-0.1-cp310-cp310-win_amd64.whl", "cp311-win_amd64"),
+        ("foo-0.1-cp310-cp310-win_amd64.whl", "cp310-win32"),
+        ("foo-0.1-cp310-cp310-macosx_11_0_x86_64.whl", "cp310-macosx_universal2"),
+        ("foo-0.1-cp310-cp310-manylinux2014_x86_64.whl", "cp310-musllinux_x86_64"),
+        # free-threaded mismatch in both directions
+        ("foo-0.1-cp313-cp313-manylinux2014_x86_64.whl", "cp313t-manylinux_x86_64"),
+        ("foo-0.1-cp313-cp313t-manylinux2014_x86_64.whl", "cp313-manylinux_x86_64"),
+        # different implementation
+        ("foo-0.1-pp310-pypy310_pp73-win_amd64.whl", "cp310-win_amd64"),
+    ],
+)
+def test_find_built_wheel_not_found(wheel: str, identifier: str) -> None:
+    assert find_built_wheel([PurePath(wheel)], identifier) is None
 
 
 def test_fix_ansi_codes_for_github_actions() -> None:

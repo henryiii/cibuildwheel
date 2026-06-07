@@ -71,6 +71,7 @@ class CommandLineArguments:
     debug_traceback: bool
     enable: list[str]
     clean_cache: bool
+    stage: str
 
     @classmethod
     def defaults(cls) -> Self:
@@ -86,6 +87,7 @@ class CommandLineArguments:
             debug_traceback=False,
             enable=[],
             clean_cache=False,
+            stage="all",
         )
 
 

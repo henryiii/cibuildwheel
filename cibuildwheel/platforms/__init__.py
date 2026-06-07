@@ -5,6 +5,7 @@ from typing import Protocol
 
 from cibuildwheel import errors
 from cibuildwheel.platforms import android, ios, linux, macos, pyodide, windows
+from cibuildwheel.platforms._run import ALL_STAGES
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -14,6 +15,7 @@ if TYPE_CHECKING:
 
     from cibuildwheel.architecture import Architecture
     from cibuildwheel.options import Options
+    from cibuildwheel.platforms._run import Stage
     from cibuildwheel.selector import BuildSelector
     from cibuildwheel.typing import GenericPythonConfiguration, PlatformName
 
@@ -27,7 +29,9 @@ class PlatformModule(Protocol):
         self, build_selector: BuildSelector, architectures: set[Architecture]
     ) -> Sequence[GenericPythonConfiguration]: ...
 
-    def build(self, options: Options, tmp_path: Path) -> None: ...
+    def build(
+        self, options: Options, tmp_path: Path, stages: frozenset[Stage] = ALL_STAGES
+    ) -> None: ...
 
 
 ALL_PLATFORM_MODULES: Final[dict[PlatformName, PlatformModule]] = {

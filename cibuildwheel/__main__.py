@@ -21,6 +21,7 @@ from cibuildwheel.ci import CIProvider, detect_ci_provider, fix_ansi_codes_for_g
 from cibuildwheel.logger import log
 from cibuildwheel.options import CommandLineArguments, Options, compute_options
 from cibuildwheel.platforms import ALL_PLATFORM_MODULES, get_build_identifiers, native_platform
+from cibuildwheel.platforms._run import Stage
 from cibuildwheel.selector import BuildSelector, EnableGroup, selector_matches
 from cibuildwheel.typing import PLATFORMS, PlatformName
 from cibuildwheel.util.file import CIBW_CACHE_PATH, ensure_cache_sentinel
@@ -208,6 +209,18 @@ def main_inner(global_options: GlobalOptions) -> None:
         help="Print a full traceback for all errors",
     )
 
+    parser.add_argument(
+        "--stage",
+        choices=["all", "build", "test"],
+        default=os.environ.get("CIBW_STAGE", "all"),
+        help="""
+            Which stage(s) to run. 'build' builds wheels into the output
+            directory and skips tests; 'test' skips building and runs tests
+            against wheels already in the output directory; 'all' (the default)
+            does both.
+        """,
+    )
+
     args = CommandLineArguments(**vars(parser.parse_args()))
 
     global_options.print_traceback_on_error = args.debug_traceback
@@ -388,10 +401,16 @@ def build_in_directory(args: CommandLineArguments) -> None:
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    stages = {
+        "all": frozenset({Stage.BUILD, Stage.TEST}),
+        "build": frozenset({Stage.BUILD}),
+        "test": frozenset({Stage.TEST}),
+    }[args.stage]
+
     tmp_path = Path(mkdtemp(prefix="cibw-run-")).resolve(strict=True)
     try:
         with log.print_summary(options=options):
-            platform_module.build(options, tmp_path)
+            platform_module.build(options, tmp_path, stages)
     finally:
         # avoid https://github.com/python/cpython/issues/86962 by performing
         # cleanup manually

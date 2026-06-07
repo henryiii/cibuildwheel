@@ -185,6 +185,56 @@ def find_compatible_wheel(wheels: Sequence[T], identifier: str) -> T | None:
     return None
 
 
+def _platform_tag_matches(tag_platform: str, identifier_platform: str) -> bool:
+    """Whether a wheel's platform tag corresponds to an identifier's platform.
+
+    e.g. the wheel tag ``macosx_11_0_x86_64`` matches the identifier platform
+    ``macosx_x86_64``; ``win_amd64`` must match exactly.
+    """
+    if identifier_platform.startswith(
+        ("manylinux", "musllinux", "macosx", "android", "ios", "pyodide")
+    ):
+        # On these platforms the wheel tag includes a platform version number,
+        # which we should ignore.
+        os_, arch = identifier_platform.split("_", 1)
+        return tag_platform.startswith(os_) and tag_platform.endswith(f"_{arch}")
+    # Windows should exactly match
+    return tag_platform == identifier_platform
+
+
+def find_built_wheel(wheels: Sequence[T], identifier: str) -> T | None:
+    """Find the wheel in `wheels` previously built for exactly `identifier`.
+
+    Used by the test-only stage to locate a wheel produced by an earlier
+    build-only run. Matches a wheel built for the identifier's own interpreter
+    (e.g. a ``cp311`` wheel for a ``cp311`` identifier, including free-threaded
+    builds), or a cross-compatible abi3/none wheel (via find_compatible_wheel).
+    """
+    cross_compatible = find_compatible_wheel(wheels, identifier)
+    if cross_compatible is not None:
+        return cross_compatible
+
+    interpreter, platform = identifier.split("-", 1)
+    interpreter = interpreter.split("_")[0]
+    free_threaded = interpreter.endswith("t")
+    base_interpreter = interpreter[:-1] if free_threaded else interpreter
+
+    for wheel in wheels:
+        _, _, _, tags = parse_wheel_filename(wheel.name)
+        for tag in tags:
+            if tag.interpreter != base_interpreter:
+                continue
+            # the free-threaded ABI tag ends in "t" (e.g. cp313t); make sure a
+            # free-threaded identifier only matches a free-threaded wheel and
+            # vice versa.
+            if free_threaded != tag.abi.endswith("t"):
+                continue
+            if _platform_tag_matches(tag.platform, platform):
+                return wheel
+
+    return None
+
+
 def is_abi3_wheel(wheel_name: str) -> bool:
     """Check if a wheel uses the abi3 stable ABI based on its filename."""
     _, _, _, tags = parse_wheel_filename(wheel_name)
