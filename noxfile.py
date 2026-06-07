@@ -18,7 +18,7 @@ DIR = Path(__file__).parent.resolve()
 def install_and_run(session: nox.Session, script: str, *args: str, **kwargs: Any) -> str | None:
     deps = nox.project.load_toml(script)["dependencies"]
     session.install(*deps)
-    return session.run("python", script, *args, **kwargs)
+    return session.run("python", script, *args, **kwargs)  # type: ignore[no-any-return]
 
 
 @nox.session

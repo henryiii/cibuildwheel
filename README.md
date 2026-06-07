@@ -1,5 +1,4 @@
-cibuildwheel
-============
+# cibuildwheel
 
 [![PyPI](https://img.shields.io/pypi/v/cibuildwheel.svg)](https://pypi.python.org/pypi/cibuildwheel)
 [![Documentation Status](https://readthedocs.org/projects/cibuildwheel/badge/?version=stable)](https://cibuildwheel.pypa.io/en/stable/?badge=stable)
@@ -19,8 +18,7 @@ Python wheels are great. Building them across **Mac, Linux, Windows**, on **mult
 `cibuildwheel` is here to help. `cibuildwheel` runs on your CI server - currently it supports GitHub Actions, Azure Pipelines, Travis CI, AppVeyor, CircleCI, and GitLab CI - and it builds and tests your wheels across all of your platforms.
 
 
-What does it do?
-----------------
+## What does it do?
 
 |                | macOS Intel | macOS Apple Silicon | Windows 64bit | Windows 32bit | Windows Arm64 | manylinux<br/>musllinux x86_64 | manylinux<br/>musllinux i686 | manylinux<br/>musllinux aarch64 | manylinux<br/>musllinux ppc64le | manylinux<br/>musllinux s390x |
 |----------------|----|-----|-----|-----|-----|----|-----|----|-----|-----|
@@ -48,8 +46,7 @@ What does it do?
 
 See the [cibuildwheel 1 documentation](https://cibuildwheel.pypa.io/en/1.x/) if you need to build unsupported versions of Python, such as Python 2.
 
-Usage
------
+## Usage
 
 `cibuildwheel` runs inside a CI service. Supported platforms depend on which service you're using:
 
@@ -68,8 +65,7 @@ Usage
 
 <!--intro-end-->
 
-Example setup
--------------
+## Example setup
 
 To build manylinux, musllinux, macOS, and Windows wheels on GitHub Actions, you could use this `.github/workflows/wheels.yml`:
 
@@ -109,8 +105,7 @@ jobs:
 
 For more information, including PyPI deployment, and the use of other CI services or the dedicated GitHub Action, check out the [documentation](https://cibuildwheel.pypa.io) and the [examples](https://github.com/pypa/cibuildwheel/tree/main/examples).
 
-How it works
-------------
+## How it works
 
 The following diagram summarises the steps that cibuildwheel takes on each platform.
 
@@ -118,8 +113,7 @@ The following diagram summarises the steps that cibuildwheel takes on each platf
 
 <sup>Explore an interactive version of this diagram [in the docs](https://cibuildwheel.pypa.io/en/stable/#how-it-works).</sup>
 
-Options
--------
+## Options
 
 |   | Option | Description |
 |---|--------|-------------|
@@ -146,8 +140,7 @@ Options
 
 These options can be specified in a pyproject.toml file, as well; see [configuration](https://cibuildwheel.pypa.io/en/stable/options/#configuration).
 
-Working examples
-----------------
+## Working examples
 
 Here are some repos that use cibuildwheel.
 
@@ -194,8 +187,7 @@ Here are some repos that use cibuildwheel.
 
 > ℹ️ That's just a handful, there are many more! Check out the [Working Examples](https://cibuildwheel.pypa.io/en/stable/working-examples) page in the docs.
 
-Legal note
-----------
+## Legal note
 
 Since `cibuildwheel` repairs the wheel with `delocate` or `auditwheel`, it might automatically bundle dynamically linked libraries from the build machine.
 
@@ -203,8 +195,7 @@ It helps ensure that the library can run without any dependencies outside of the
 
 This is similar to static linking, so it might have some license implications. Check the license for any code you're pulling in to make sure that's allowed.
 
-Changelog
-=========
+## Changelog
 
 <!-- START bin/update_readme_changelog.py -->
 
@@ -280,15 +271,13 @@ That's the last few versions.
 
 ---
 
-Contributing
-============
+## Contributing
 
 For more info on how to contribute to cibuildwheel, see the [docs](https://cibuildwheel.pypa.io/en/latest/contributing/).
 
 Everyone interacting with the cibuildwheel project via codebase, issue tracker, chat rooms, or otherwise is expected to follow the [PSF Code of Conduct](https://github.com/pypa/.github/blob/main/CODE_OF_CONDUCT.md).
 
-Maintainers
------------
+### Maintainers
 
 - Joe Rickerby [@joerick](https://github.com/joerick)
 - Yannick Jadoul [@YannickJadoul](https://github.com/YannickJadoul)
@@ -296,8 +285,7 @@ Maintainers
 - Henry Schreiner [@henryiii](https://github.com/henryiii)
 - Grzegorz Bokota [@Czaki](https://github.com/Czaki)
 
-Credits
--------
+### Credits
 
 `cibuildwheel` stands on the shoulders of giants.
 
@@ -313,8 +301,7 @@ Massive props also to-
 - @czaki for being a super-contributor over many PRs and helping out with countless issues!
 - @mattip for his help with adding PyPy support to cibuildwheel
 
-See also
-========
+## See also
 
 Another very similar tool to consider is [matthew-brett/multibuild](http://github.com/matthew-brett/multibuild). `multibuild` is a shell script toolbox for building a wheel on various platforms. It is used as a basis to build some of the big data science tools, like SciPy.
 
