@@ -2,25 +2,17 @@ from __future__ import annotations
 
 __lazy_modules__ = {
     "cibuildwheel.audit",
-    "cibuildwheel.frontend",
     "cibuildwheel.logger",
     "cibuildwheel.platforms.macos",
-    "cibuildwheel.util",
     "cibuildwheel.util.cmd",
     "cibuildwheel.util.file",
-    "cibuildwheel.util.helpers",
-    "cibuildwheel.util.packaging",
     "cibuildwheel.venv",
     "filelock",
     "packaging",
     "packaging.version",
-    "pathlib",
     "platform",
     "shlex",
-    "shutil",
     "subprocess",
-    "textwrap",
-    "typing",
 }
 
 import dataclasses

@@ -1,5 +1,3 @@
-__lazy_modules__ = {"cibuildwheel.util", "cibuildwheel.util.helpers"}
-
 import os
 import re
 from enum import Enum

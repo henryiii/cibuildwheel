@@ -1,27 +1,14 @@
 from __future__ import annotations
 
 __lazy_modules__ = {
-    "argparse",
     "cibuildwheel._compat",
     "cibuildwheel._compat.tarfile",
-    "cibuildwheel.architecture",
     "cibuildwheel.ci",
     "cibuildwheel.logger",
-    "cibuildwheel.options",
     "cibuildwheel.platforms",
-    "cibuildwheel.selector",
     "cibuildwheel.typing",
-    "cibuildwheel.util",
     "cibuildwheel.util.file",
-    "cibuildwheel.util.helpers",
-    "cibuildwheel.util.resources",
-    "contextlib",
-    "functools",
-    "io",
-    "pathlib",
-    "shutil",
     "tempfile",
-    "textwrap",
     "traceback",
 }
 

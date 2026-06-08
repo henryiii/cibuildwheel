@@ -1,16 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = {
-    "cibuildwheel.ci",
-    "contextlib",
-    "functools",
-    "hashlib",
-    "humanize",
-    "io",
-    "pathlib",
-    "re",
-    "textwrap",
-}
+__lazy_modules__ = {"cibuildwheel.ci", "hashlib", "humanize"}
 
 import codecs
 import contextlib

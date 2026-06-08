@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = {"cibuildwheel.util", "json"}
+__lazy_modules__ = {"json"}
 
 import json
 

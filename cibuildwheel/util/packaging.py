@@ -1,12 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = {
-    "cibuildwheel.util.cmd",
-    "cibuildwheel.util.helpers",
-    "packaging",
-    "packaging.utils",
-    "shlex",
-}
+__lazy_modules__ = {"cibuildwheel.util.cmd", "packaging", "packaging.utils", "shlex"}
 
 import shlex
 from dataclasses import dataclass, field

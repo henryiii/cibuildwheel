@@ -257,3 +257,9 @@ skip = [
     'htmlcov',
     'all_known_setup.yaml',
 ]
+
+[tool.flake8-lazy.standalone]
+apply = "set"
+line-length = 100
+# the following line shall only be update using `nox -s update_lazy_modules`. do not reformat
+lazy-exclude-modules = ["annotationlib", "argparse", "ast", "bz2", "cibuildwheel", "cibuildwheel.architecture", "cibuildwheel.environment", "cibuildwheel.errors", "cibuildwheel.frontend", "cibuildwheel.oci_container", "cibuildwheel.options", "cibuildwheel.selector", "cibuildwheel.util", "cibuildwheel.util.helpers", "cibuildwheel.util.packaging", "cibuildwheel.util.resources", "collections", "compression", "compression.zstd", "contextlib", "copyreg", "dataclasses", "enum", "fcntl", "functools", "gettext", "grp", "importlib", "importlib.util", "io", "keyword", "locale", "lzma", "operator", "pathlib", "pwd", "re", "reprlib", "runpy", "shutil", "textwrap", "tomllib", "types", "typing", "zlib"]

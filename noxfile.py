@@ -205,5 +205,54 @@ def build(session: nox.Session) -> None:
     session.run("python", "-m", "build")
 
 
+@nox.session(default=False, reuse_venv=True, venv_backend="uv", python="3.15")
+def update_lazy_modules(session: nox.Session) -> None:
+    """
+    Update the lazy modules exclusion list in pyproject.toml
+    """
+    session.install("-e.")
+    env = os.environ.copy()
+    env["PYTHON_LAZY_IMPORTS"] = "all"
+    output_default = session.run("python", "-vI", "/dev/null", silent=True)
+    assert isinstance(output_default, str)
+    output_help = session.run("python", "-vm", "cibuildwheel", "--help", env=env, silent=True)
+    assert isinstance(output_help, str)
+
+    def parse_modules(output: str) -> set[str]:
+        result = set()
+        destroy = "# destroy "
+        for line in output.splitlines():
+            if line.startswith(destroy):
+                name = line[len(destroy) :]
+                result.add(name)
+        return result
+
+    modules_default = parse_modules(output_default)
+    modules_help = parse_modules(output_help)
+    modules = set()
+    # do not include platform specific modules in the exclusion list
+    modules_default |= {
+        "nt",  # Windows
+        "ntpath",  # Windows
+        "posix",  # POSIX (Linux/macOS)
+        "posixpath",  # POSIX (Linux/macOS)
+    }
+    for name in modules_help - modules_default:
+        extern_private = name.startswith("_") or ("._" in name and "cibuildwheel" not in name)
+        if extern_private:
+            continue
+        modules.add(f'"{name}"')
+    exclude_modules = ", ".join(sorted(modules))
+    # This is not very robust but should be enough for our simple configuration for now
+    pyproject_toml_path = Path("pyproject.toml")
+    pyproject_toml = pyproject_toml_path.read_text().splitlines()
+    for i in range(len(pyproject_toml)):
+        if pyproject_toml[i].strip().startswith("lazy-exclude-modules = "):
+            pyproject_toml[i] = f"lazy-exclude-modules = [{exclude_modules}]"
+            break
+    pyproject_toml.append("")
+    pyproject_toml_path.write_bytes("\n".join(pyproject_toml).encode())
+
+
 if __name__ == "__main__":
     nox.main()
